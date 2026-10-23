@@ -1,0 +1,5 @@
+{
+  "name": "claude-branch-picker",
+  "owner": { "name": "pro-verstka" },
+  "plugins": [{ "name": "branch-picker", "source": "./" }]
+}
