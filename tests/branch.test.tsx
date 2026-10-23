@@ -17,14 +17,14 @@ const BAND = {
 
 function branch($: Engine, args: string) {
   return $.command.run({
-    command: 'branch',
+    command: 'git-branch',
     args,
     origin: { kind: 'composer' },
     presentation: { isFullscreen: false, columns: 80 },
   })
 }
 
-function fakeGit(on: Parameters<TestBody>[1], start = 'main', refs = 'main\nfeature\n') {
+function fakeGit(on: Parameters<TestBody>[1], start = 'main', refs = 'main\nfeature\n', isCommandRefused = false) {
   let current = start
   const switched: string[][] = []
   const toasts: string[] = []
@@ -37,7 +37,10 @@ function fakeGit(on: Parameters<TestBody>[1], start = 'main', refs = 'main\nfeat
     current = rest[rest.length - 1] ?? current
     return { value: ok('') }
   })
-  on('command.register', () => ({ value: { command: 'branch' } }))
+  on('command.register', () => {
+    if (isCommandRefused) throw new Error('"/git-branch" refused: it is the built-in /git-branch')
+    return { value: { command: 'git-branch' } }
+  })
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('ui.toast', (_, e) => (toasts.push(e.text), { value: undefined }))
   return { switched, toasts }
@@ -58,6 +61,14 @@ test('the band switches branch through git switch', async ($, on) => {
   expect(git.switched).toEqual([['feature']])
   expect(git.toasts).toEqual(['Switched to feature'])
   expect((await ui.find({ key: 'branch' }))?.props.value).toBe('feature')
+  await ui.unmount()
+})
+
+test('the band draws at session start even when the command is refused', async ($, on) => {
+  fakeGit(on, 'main', 'main\nfeature\n', true)
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true }).catch(() => undefined)
+  const ui = await $.ui.mount(BAND)
+  expect((await ui.find({ key: 'branch' }))?.props.value).toBe('main')
   await ui.unmount()
 })
 
@@ -93,7 +104,7 @@ test('the band only shows the branch while a turn runs', async ($, on) => {
   await ui.unmount()
 })
 
-test('/branch lists, switches and reports git errors', async ($, on) => {
+test('/git-branch lists, switches and reports git errors', async ($, on) => {
   const git = fakeGit(on)
   await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
 

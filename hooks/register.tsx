@@ -33,12 +33,12 @@ async function gitSwitch($: $, args: string[]) {
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
-    await $.command.register({
-      name: 'branch',
-      description: 'Switch git branch without a worktree: /branch <name>, /branch -c <new>',
-    })
     const started = await next(e)
     await refresh($)
+    await $.command.register({
+      name: 'git-branch',
+      description: 'Switch git branch without a worktree: /git-branch <name>, /git-branch -c <new>',
+    })
     return started
   })
 
@@ -48,7 +48,7 @@ export const register: Register = on => {
     return done
   })
 
-  on('command.run', { command: 'branch' }, async ($, e) => {
+  on('command.run', { command: 'git-branch' }, async ($, e) => {
     const args = e.args.trim().split(/\s+/).filter(Boolean)
     if (args.length === 0) {
       const now = await refresh($)
